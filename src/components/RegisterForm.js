@@ -1,5 +1,7 @@
 import React, {useState} from 'react'
 import { StyleSheet, Text, View, TouchableOpacity, TextInput, Button, KeyboardAvoidingView} from 'react-native'
+import {validateEmail} from "../utils/validations";
+import firebase from '../utils/firebase';
 
 export default function RegisterForm(props) {
 
@@ -7,8 +9,47 @@ export default function RegisterForm(props) {
     //Uses the fun created to hold the object that returns
     const [formData, setFormData] = useState(defaultValue())
 
+    const [formError, setformError] = useState({});
+
     const register = () =>{
-        console.log(formData);
+        let errors = {};
+
+        if(!formData.email){
+            errors.email = true;
+        }
+        if(!formData.password){
+            errors.password = true;
+        }
+        if(!formData.repeatPassword){
+            errors.repeatPassword = true;
+        }
+        else if(!validateEmail(formData.email)){
+            errors.email = true;
+        }
+        else if(formData.password !== formData.repeatPassword){
+            errors.password = true;
+            errors.repeatPassword = true;
+        }
+        else if(formData.password.length < 6){
+            errors.password = true;
+        }
+        else{
+            // ok  
+            firebase 
+            .auth()
+            .createUserWithEmailAndPassword(formData.email, formData.password)
+            .then(() =>{
+                console.log("Account created")
+            })
+            .catch(() => { // if something goes wrong
+                setformError({
+                    email: true,
+                    password: true,
+                    repeatPassword: true,
+                  });
+            });
+        }
+        setformError(errors)
     }
 
 
@@ -17,14 +58,14 @@ export default function RegisterForm(props) {
 
          <TextInput 
              placeholder= "E-mail"
-             placeholderTextColor="#969696"
-             style={styles.input} //Adds the new info with the old data of the object
+             placeholderTextColor="#969696"    // if solo es asi && terniario es asi ?
+             style={[styles.input, formError.email && styles.errorInput]} //Adds the new info with the old data of the object
              onChange={(e) => setFormData({...formData, email: e.nativeEvent.text})}
          />
          <TextInput 
              placeholder= "Password"
              placeholderTextColor="#969696"
-             style={styles.input}
+             style={[styles.input, formError.password && styles.errorInput]}
              secureTextEntry={true}     //Adds the new info with the old data of the object
              onChange={(e) => setFormData({...formData, password : e.nativeEvent.text})}
          />
@@ -32,7 +73,7 @@ export default function RegisterForm(props) {
         <TextInput 
             placeholder= "Confirm Password"
             placeholderTextColor="#969696"
-            style={styles.input}
+            style={[styles.input, formError.repeatPassword && styles.errorInput]}
             secureTextEntry={true}
             onChange={(e) => setFormData({...formData, repeatPassword : e.nativeEvent.text})}
         />
@@ -81,5 +122,8 @@ const styles = StyleSheet.create({
         flex:1,
         justifyContent: "flex-end",
         marginBottom : 40,
+    },
+    errorInput:{
+        borderColor : "#940c0c",
     },
 });
